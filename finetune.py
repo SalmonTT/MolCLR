@@ -16,17 +16,6 @@ from sklearn.metrics import roc_auc_score, mean_squared_error, mean_absolute_err
 from dataset.dataset_test import MolTestDatasetWrapper
 
 
-apex_support = False
-try:
-    sys.path.append('./apex')
-    from apex import amp
-
-    apex_support = True
-except:
-    print("Please install apex for mixed precision training from: https://github.com/NVIDIA/apex")
-    apex_support = False
-
-
 def _save_config_file(model_checkpoints_folder):
     if not os.path.exists(model_checkpoints_folder):
         os.makedirs(model_checkpoints_folder)
@@ -60,6 +49,7 @@ class FineTune(object):
     def __init__(self, dataset, config):
         self.config = config
         self.device = self._get_device()
+        print("device available: ", self.device)
 
         current_time = datetime.now().strftime('%b%d_%H-%M-%S')
         dir_name = current_time + '_' + config['task_name'] + '_' + config['dataset']['target']
@@ -75,7 +65,10 @@ class FineTune(object):
                 self.criterion = nn.MSELoss()
 
     def _get_device(self):
-        if torch.cuda.is_available() and self.config['gpu'] != 'cpu':
+        # adds support for mps device
+        if self.config['gpu'] == 'mps':
+            device = torch.device("mps")
+        elif torch.cuda.is_available() and self.config['gpu'] != 'cpu':
             device = self.config['gpu']
             torch.cuda.set_device(device)
         else:
@@ -104,7 +97,7 @@ class FineTune(object):
         self.normalizer = None
         if self.config["task_name"] in ['qm7', 'qm9']:
             labels = []
-            for d, __ in train_loader:
+            for d in train_loader:
                 labels.append(d.y)
             labels = torch.cat(labels)
             self.normalizer = Normalizer(labels)
@@ -133,11 +126,6 @@ class FineTune(object):
             self.config['init_lr'], weight_decay=eval(self.config['weight_decay'])
         )
 
-        if apex_support and self.config['fp16_precision']:
-            model, optimizer = amp.initialize(
-                model, optimizer, opt_level='O2', keep_batchnorm_fp32=True
-            )
-
         model_checkpoints_folder = os.path.join(self.writer.log_dir, 'checkpoints')
 
         # save config file
@@ -160,11 +148,7 @@ class FineTune(object):
                     self.writer.add_scalar('train_loss', loss, global_step=n_iter)
                     print(epoch_counter, bn, loss.item())
 
-                if apex_support and self.config['fp16_precision']:
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    loss.backward()
+                loss.backward()
 
                 optimizer.step()
                 n_iter += 1
@@ -313,7 +297,7 @@ class FineTune(object):
 
 def main(config):
     dataset = MolTestDatasetWrapper(config['batch_size'], **config['dataset'])
-
+    print(dataset)
     fine_tune = FineTune(dataset, config)
     fine_tune.train()
     
@@ -328,95 +312,39 @@ def main(config):
 
 if __name__ == "__main__":
     config = yaml.load(open("config_finetune.yaml", "r"), Loader=yaml.FullLoader)
-
+    # Original example of classification
     if config['task_name'] == 'BBBP':
         config['dataset']['task'] = 'classification'
         config['dataset']['data_path'] = 'data/bbbp/BBBP.csv'
         target_list = ["p_np"]
-
-    elif config['task_name'] == 'Tox21':
-        config['dataset']['task'] = 'classification'
-        config['dataset']['data_path'] = 'data/tox21/tox21.csv'
-        target_list = [
-            "NR-AR", "NR-AR-LBD", "NR-AhR", "NR-Aromatase", "NR-ER", "NR-ER-LBD", 
-            "NR-PPAR-gamma", "SR-ARE", "SR-ATAD5", "SR-HSE", "SR-MMP", "SR-p53"
-        ]
-
-    elif config['task_name'] == 'ClinTox':
-        config['dataset']['task'] = 'classification'
-        config['dataset']['data_path'] = 'data/clintox/clintox.csv'
-        target_list = ['CT_TOX', 'FDA_APPROVED']
-
-    elif config['task_name'] == 'HIV':
-        config['dataset']['task'] = 'classification'
-        config['dataset']['data_path'] = 'data/hiv/HIV.csv'
-        target_list = ["HIV_active"]
-
-    elif config['task_name'] == 'BACE':
-        config['dataset']['task'] = 'classification'
-        config['dataset']['data_path'] = 'data/bace/bace.csv'
-        target_list = ["Class"]
-
-    elif config['task_name'] == 'SIDER':
-        config['dataset']['task'] = 'classification'
-        config['dataset']['data_path'] = 'data/sider/sider.csv'
-        target_list = [
-            "Hepatobiliary disorders", "Metabolism and nutrition disorders", "Product issues", 
-            "Eye disorders", "Investigations", "Musculoskeletal and connective tissue disorders", 
-            "Gastrointestinal disorders", "Social circumstances", "Immune system disorders", 
-            "Reproductive system and breast disorders", 
-            "Neoplasms benign, malignant and unspecified (incl cysts and polyps)", 
-            "General disorders and administration site conditions", "Endocrine disorders", 
-            "Surgical and medical procedures", "Vascular disorders", 
-            "Blood and lymphatic system disorders", "Skin and subcutaneous tissue disorders", 
-            "Congenital, familial and genetic disorders", "Infections and infestations", 
-            "Respiratory, thoracic and mediastinal disorders", "Psychiatric disorders", 
-            "Renal and urinary disorders", "Pregnancy, puerperium and perinatal conditions", 
-            "Ear and labyrinth disorders", "Cardiac disorders", 
-            "Nervous system disorders", "Injury, poisoning and procedural complications"
-        ]
-    
-    elif config['task_name'] == 'MUV':
-        config['dataset']['task'] = 'classification'
-        config['dataset']['data_path'] = 'data/muv/muv.csv'
-        target_list = [
-            'MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644', 'MUV-548', 'MUV-852',
-            'MUV-600', 'MUV-810', 'MUV-712', 'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733',
-            'MUV-652', 'MUV-466', 'MUV-832'
-        ]
-
-    elif config['task_name'] == 'FreeSolv':
-        config['dataset']['task'] = 'regression'
-        config['dataset']['data_path'] = 'data/freesolv/freesolv.csv'
-        target_list = ["expt"]
-    
-    elif config["task_name"] == 'ESOL':
-        config['dataset']['task'] = 'regression'
-        config['dataset']['data_path'] = 'data/esol/esol.csv'
-        target_list = ["measured log solubility in mols per litre"]
-
-    elif config["task_name"] == 'Lipo':
-        config['dataset']['task'] = 'regression'
-        config['dataset']['data_path'] = 'data/lipophilicity/Lipophilicity.csv'
-        target_list = ["exp"]
-    
-    elif config["task_name"] == 'qm7':
-        config['dataset']['task'] = 'regression'
-        config['dataset']['data_path'] = 'data/qm7/qm7.csv'
-        target_list = ["u0_atom"]
-
-    elif config["task_name"] == 'qm8':
-        config['dataset']['task'] = 'regression'
-        config['dataset']['data_path'] = 'data/qm8/qm8.csv'
-        target_list = [
-            "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", 
-            "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM", "f1-CAM","f2-CAM"
-        ]
-    
+    # Original example of regression (mutiple targets)
     elif config["task_name"] == 'qm9':
         config['dataset']['task'] = 'regression'
         config['dataset']['data_path'] = 'data/qm9/qm9.csv'
         target_list = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv']
+    # Original example of single target regression
+    elif config["task_name"] == 'qm7':
+        config['dataset']['task'] = 'regression'
+        config['dataset']['data_path'] = 'data/qm7/qm7.csv'
+        target_list = ["u0_atom"]
+    # F2 project task
+    elif config['task_name'] == 'F2':
+        # additional code to change the column name from 'SMILES' to 'smiles'
+        # # also train on a small sample
+        # data = pd.read_csv('data/F2/SP_7JXQ_A_no-H2O_1cons_M1-div_arm_hb_16rota_new-smiles_dedup.csv')
+        # data = data.rename(columns={'SMILES': 'smiles'})
+        # data = data.sample(1000)
+        # data.to_csv('data/F2/SP_7JXQ_A_no-H2O_1cons_M1-div_arm_hb_16rota_new-smiles_dedup_SAMPLE.csv')
+
+        # set config (use sample data)
+        config['dataset']['task'] = 'regression'
+        if config['sample']:
+            config['dataset'][
+                'data_path'] = 'data/F2/SP_7JXQ_A_no-H2O_1cons_M1-div_arm_hb_16rota_new-smiles_dedup_SAMPLE.csv'
+        else:
+            config['dataset'][
+                'data_path'] = 'data/F2/SP_7JXQ_A_no-H2O_1cons_M1-div_arm_hb_16rota_new-smiles_dedup.csv'
+        target_list = ["docking score", "glide ligand efficiency"]
 
     else:
         raise ValueError('Undefined downstream task!')

@@ -13,17 +13,6 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from utils.nt_xent import NTXentLoss
 
 
-apex_support = False
-try:
-    sys.path.append('./apex')
-    from apex import amp
-
-    apex_support = True
-except:
-    print("Please install apex for mixed precision training from: https://github.com/NVIDIA/apex")
-    apex_support = False
-
-
 def _save_config_file(model_checkpoints_folder):
     if not os.path.exists(model_checkpoints_folder):
         os.makedirs(model_checkpoints_folder)
@@ -43,7 +32,10 @@ class MolCLR(object):
         self.nt_xent_criterion = NTXentLoss(self.device, config['batch_size'], **config['loss'])
 
     def _get_device(self):
-        if torch.cuda.is_available() and self.config['gpu'] != 'cpu':
+        # adds support for mps device
+        if self.config['gpu'] == 'mps':
+            device = torch.device("mps")
+        elif torch.cuda.is_available() and self.config['gpu'] != 'cpu':
             device = self.config['gpu']
             torch.cuda.set_device(device)
         else:
@@ -90,11 +82,6 @@ class MolCLR(object):
             eta_min=0, last_epoch=-1
         )
 
-        if apex_support and self.config['fp16_precision']:
-            model, optimizer = amp.initialize(
-                model, optimizer, opt_level='O2', keep_batchnorm_fp32=True
-            )
-
         model_checkpoints_folder = os.path.join(self.writer.log_dir, 'checkpoints')
 
         # save config file
@@ -118,11 +105,7 @@ class MolCLR(object):
                     self.writer.add_scalar('cosine_lr_decay', scheduler.get_last_lr()[0], global_step=n_iter)
                     print(epoch_counter, bn, loss.item())
 
-                if apex_support and self.config['fp16_precision']:
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    loss.backward()
+                loss.backward()
 
                 optimizer.step()
                 n_iter += 1

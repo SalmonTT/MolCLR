@@ -89,11 +89,12 @@ def removeSubgraph(Graph, center, percent=0.2):
 
 
 class MoleculeDataset(Dataset):
-    def __init__(self, data_path):
-        super(Dataset, self).__init__()
+    def __init__(self, data_path, transform=None):
+        super().__init__(transform=transform)
+        self._indices = None
         self.smiles_data = read_smiles(data_path)
 
-    def __getitem__(self, index):
+    def get(self, index):
         mol = Chem.MolFromSmiles(self.smiles_data[index])
         # mol = Chem.AddHs(mol)
 
@@ -177,7 +178,7 @@ class MoleculeDataset(Dataset):
         return data_i, data_j
 
 
-    def __len__(self):
+    def len(self):
         return len(self.smiles_data)
 
 
@@ -196,7 +197,7 @@ class MoleculeDatasetWrapper(object):
 
     def get_train_validation_data_loaders(self, train_dataset):
         # obtain training indices that will be used for validation
-        num_train = len(train_dataset)
+        num_train = train_dataset.len()
         indices = list(range(num_train))
         
         # random_state = np.random.RandomState(seed=666)
@@ -223,7 +224,7 @@ if __name__ == "__main__":
     data_path = 'data/chem_dataset/zinc_standard_agent/processed/smiles.csv'
     # dataset = MoleculeDataset(data_path=data_path)
     # print(dataset)
-    # print(dataset.__getitem__(0))
+    # print(dataset.get(0))
     dataset = MoleculeDatasetWrapper(batch_size=4, num_workers=4, valid_size=0.1, data_path=data_path)
     train_loader, valid_loader = dataset.get_data_loaders()
     for bn, (xis, xjs) in enumerate(train_loader):

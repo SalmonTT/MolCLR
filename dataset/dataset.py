@@ -14,8 +14,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import torchvision.transforms as transforms
 
 from torch_scatter import scatter
-from torch_geometric.data import Data, Dataset, DataLoader
-
+from torch_geometric.data import Data, Dataset
+from torch_geometric.loader import DataLoader
 import rdkit
 from rdkit import Chem
 from rdkit.Chem.rdchem import HybridizationType
@@ -54,11 +54,12 @@ def read_smiles(data_path):
 
 
 class MoleculeDataset(Dataset):
-    def __init__(self, data_path):
-        super(Dataset, self).__init__()
+    def __init__(self, data_path, transform=None):
+        super().__init__(transform=transform)
+        self._indices = None
         self.smiles_data = read_smiles(data_path)
 
-    def __getitem__(self, index):
+    def get(self, index):
         mol = Chem.MolFromSmiles(self.smiles_data[index])
         # mol = Chem.AddHs(mol)
 
@@ -146,7 +147,7 @@ class MoleculeDataset(Dataset):
         
         return data_i, data_j
 
-    def __len__(self):
+    def len(self):
         return len(self.smiles_data)
 
 
@@ -165,7 +166,8 @@ class MoleculeDatasetWrapper(object):
 
     def get_train_validation_data_loaders(self, train_dataset):
         # obtain training indices that will be used for validation
-        num_train = len(train_dataset)
+        # num_train = len(train_dataset)
+        num_train = train_dataset.len()
         indices = list(range(num_train))
         np.random.shuffle(indices)
 

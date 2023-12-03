@@ -28,6 +28,7 @@ If you find our work useful in your research, please cite:
 
 Set up conda environment and clone the github repo
 
+Original instructions:
 ```
 # create a new environment
 $ conda create --name molclr python=3.7
@@ -45,6 +46,71 @@ $ conda install -c conda-forge nvidia-apex # optional
 $ git clone https://github.com/yuyangw/MolCLR.git
 $ cd MolCLR
 ```
+
+For Mac M2:
+```angular2html
+# create a new environment
+$ conda create --name torch_env python=3.10.13
+$ conda activate torch_env
+
+# install requirements
+$ conda install pytorch torchvision torchaudio -c pytorch-nightly
+$ conda install -y clang_osx-arm64 clangxx_osx-arm64 gfortran_osx-arm64
+$ pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-2.1.0+cpu.html
+$ pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-2.1.0+cpu.html
+$ pip install rdkit
+$ pip install PyYAML
+$ pip install tensorboard
+```
+
+### Modifications done by Simon
+In addition to modifying codes in this repo, I also modified the following files in torch_geometric:
+
+**torch_geometric/data/dataset.py**
+```python
+# original:
+def indices(self) -> Sequence:
+    return range(self.len()) if self.indices is None else self._indices
+# modified:
+def indices(self) -> Sequence:
+    return range(self.len()) if self._indices is None else self._indices
+```
+The original code has a bug that causes a recursive reference
+
+### Instructions for Cesar
+#### 1. Install the environment as described above
+- You might not need the nightly version of pytorch, I am using it instead of stable build because Apple recommends 
+this version for acceleration on Apple Silicon Macs
+- you might not need to execute this command ```$conda install -y clang_osx-arm64 clangxx_osx-arm64 gfortran_osx-arm64```
+#### 2. Finetune the model using data given by Dr. Weil
+1. Modify the config_finetune.yaml file 
+Change the following parameters:
+- ```epochs```: change to any value that you see fit, I currently set it to 1
+- ```gpu```: set to 'cuda:0' if you are using CUDA, 'mps' if you are using Apple Silicon macs and 'cpu' otherwise
+- ```task_name```: set to 'F2' which would finetune the model on this dataset given:
+  - 'SP_7JXQ_A_no-H2O_1cons_M1-div_arm_hb_16rota_new-smiles_dedup.csv'
+- ```sample```: set to 'False' when running on server. Set to 'True' will read only 1000 smiles from dataset
+- ```fine_tune_from```: try 'pretrained_gin' and 'pretrain_gcn'
+- ```model_type```: try 'gin' and 'gcn' (corresponds to ```fine_tune_from```)
+2. Simply run the finetune.py file
+
+#### 3. Pretrain the model using data given by Dr. Weil
+1. Modify the config_finetune.yaml file
+Change the following parameters:
+- ```epochs```: change to any value that you see fit, I currently set it to 10
+- ```model_type```: try 'gin' and 'gcn'
+- ```data_path```: currently set to "data/F2/SP_7JXQ_A_no-H2O_1cons_M1-div_arm_hb_16rota_new-smiles_dedup.txt"
+  - This is the dataste given to use with the 'SMILES' column extracted, dropna and exported as .txt file
+  - The paper uses ~10 million molecules for pre-training, can we potentially try with similar number of 
+  molecules (just need SMILES)? Or is there no additional point to pre-train with our dataset since it is 
+  likely to be similar? Just FYI, the original pre-train dataset is from PubChem
+2. Simply run the molclr.py file
+
+
+#### 4. Results
+- Tensorboard results: I believe the results are automatically exported to be viewed using tensorboard. See files with
+names such as "Dec02_22-04-30" etc
+- 'experiments' folder: this folder contains the results from finetune I believe.
 
 ### Dataset
 
