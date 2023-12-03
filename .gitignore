@@ -3,7 +3,3 @@
 __pycache__
 
 *.zip
-
-data/
-finetune/
-experiments/
