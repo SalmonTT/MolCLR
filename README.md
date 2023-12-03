@@ -1,25 +1,12 @@
 ## Molecular Contrastive Learning of Representations via Graph Neural Networks ##
 
-#### Nature Machine Intelligence [[Paper]](https://www.nature.com/articles/s42256-022-00447-x) [[arXiv]](https://arxiv.org/abs/2102.10056/) [[PDF]](https://www.nature.com/articles/s42256-022-00447-x.pdf) </br>
-[Yuyang Wang](https://yuyangw.github.io/), [Jianren Wang](https://www.jianrenw.com/), [Zhonglin Cao](https://www.linkedin.com/in/zhonglincao/?trk=public_profile_browsemap), [Amir Barati Farimani](https://www.meche.engineering.cmu.edu/directory/bios/barati-farimani-amir.html) </br>
-Carnegie Mellon University </br>
+Original Repo and paper: [Repo](https://github.com/yuyangw/MolCLR.git), [Paper](https://www.nature.com/articles/s42256-022-00447-x) [arXiv](https://arxiv.org/abs/2102.10056/)
 
 <img src="figs/pipeline.gif" width="450">
 
-This is the (un)official implementation (modified by Simon for a project at Columbia University) of <strong><em>MolCLR</em></strong>: ["Molecular Contrastive Learning of Representations via Graph Neural Networks"](https://www.nature.com/articles/s42256-022-00447-x). In this work, we introduce a contrastive learning framework for molecular representation learning on large unlabelled dataset (~10M unique molecules). <strong><em>MolCLR</em></strong> pre-training greatly boosts the performance of GNN models on various downstream molecular property prediction benchmarks. 
-If you find our work useful in your research, please cite:
-
-```
-@article{wang2022molclr,
-  title={Molecular contrastive learning of representations via graph neural networks},
-  author={Wang, Yuyang and Wang, Jianren and Cao, Zhonglin and Barati Farimani, Amir},
-  journal={Nature Machine Intelligence},
-  pages={1--9},
-  year={2022},
-  publisher={Nature Publishing Group},
-  doi={10.1038/s42256-022-00447-x}
-}
-```
+This is the (un)official implementation (modified by Simon for a project at Columbia University) of <strong><em>MolCLR</em></strong>: ["Molecular Contrastive Learning of Representations via Graph Neural Networks"](https://www.nature.com/articles/s42256-022-00447-x). Main modifications include:
+1. Updated code to work with updated versions of pytorch (2.1.0) and Python (3.10)
+2. Added compatibility to run with Apple Silicon GPU acceleration
 
 
 ## Getting Started
@@ -77,7 +64,7 @@ def indices(self) -> Sequence:
 ```
 The original code has a bug that causes a recursive reference
 
-### Instructions for Cesar
+### Instructions for Cesar 
 #### 1. Install the environment as described above
 - You might not need the nightly version of pytorch, I am using it instead of stable build because Apple recommends 
 this version for acceleration on Apple Silicon Macs
@@ -114,6 +101,8 @@ Change the following parameters:
 names such as "Dec02_22-04-30" etc
 - 'experiments' folder: this folder contains the results from finetune I believe.
 
+
+# Original README instructions
 ### Dataset
 
 You can download the pre-training data and benchmarks used in the paper [here](https://drive.google.com/file/d/1aDtN6Qqddwwn2x612kWz9g0xQcuAtzDE/view?usp=sharing) and extract the zip file under `./data` folder. The data for pre-training can be found in `pubchem-10m-clean.txt`. All the databases for fine-tuning are saved in the folder under the benchmark name. You can also find the benchmarks from [MoleculeNet](https://moleculenet.org/).
