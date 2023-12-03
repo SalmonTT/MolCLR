@@ -83,7 +83,8 @@ The original code has a bug that causes a recursive reference
 this version for acceleration on Apple Silicon Macs
 - you might not need to execute this command ```$conda install -y clang_osx-arm64 clangxx_osx-arm64 gfortran_osx-arm64```
 #### 2. Finetune the model using data given by Dr. Weil
-1. Modify the config_finetune.yaml file  
+1. Modify the config_finetune.yaml file
+
 Change the following parameters:
 - ```epochs```: change to any value that you see fit, I currently set it to 1
 - ```gpu```: set to 'cuda:0' if you are using CUDA, 'mps' if you are using Apple Silicon macs and 'cpu' otherwise
@@ -95,7 +96,8 @@ Change the following parameters:
 2. Simply run the finetune.py file
 
 #### 3. Pretrain the model using data given by Dr. Weil
-1. Modify the config_finetune.yaml file  
+1. Modify the config_finetune.yaml file
+
 Change the following parameters:
 - ```epochs```: change to any value that you see fit, I currently set it to 10
 - ```model_type```: try 'gin' and 'gcn'
