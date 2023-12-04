@@ -5,8 +5,9 @@ Original Repo and paper: [Repo](https://github.com/yuyangw/MolCLR.git), [Paper](
 <img src="figs/pipeline.gif" width="450">
 
 This is the (un)official implementation (modified by Simon for a project at Columbia University) of <strong><em>MolCLR</em></strong>: ["Molecular Contrastive Learning of Representations via Graph Neural Networks"](https://www.nature.com/articles/s42256-022-00447-x). Main modifications include:
-1. Updated code to work with updated versions of pytorch (2.1.0) and Python (3.10)
+1. Updated code and fixed several bugs to work with updated versions of pytorch (2.1.0) and Python (3.10)
 2. Added compatibility to run with Apple Silicon GPU acceleration
+3. Added the ability to run pre-trained model on docking-score/glide ligand efficiency
 
 
 ## Getting Started
